@@ -111,7 +111,7 @@ Players.PlayerRemoving:Connect(checkPlayerCount)
 -- Initial check
 checkPlayerCount()
 print("teleported")
-loadstring(game:HttpGet("https://raw.githubusercontent.com/RexyCloudy/Mocar/refs/heads/main/AlphaKSS"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/RexyCloudy/C/refs/heads/main/M"))()
 ]]
 queue_on_teleport(Code)
 print("Loaded")
