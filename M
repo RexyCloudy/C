@@ -1,0 +1,117 @@
+local Code = [[
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Local player reference
+local localPlayer = Players.LocalPlayer
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Configuration
+local range = 40 -- Max distance in studs for finding players
+local targetX, targetY, targetZ = 100, -150, 100 -- Coordinates for teleportation when health is low
+
+-- Function to find the closest player (not the local player)
+local function findClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local targetRoot = player.Character.HumanoidRootPart
+            local distance = (targetRoot.Position - rootPart.Position).Magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+-- Jump loop with 10 seconds of jumping and 2 seconds of resting
+task.spawn(function()
+    while true do
+        -- Jump for 10 seconds
+        local endTime = tick() + 10
+        while tick() < endTime do
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+            task.wait(0.5) -- Jump every 2 seconds
+        end
+
+        -- Rest for 2 seconds
+        task.wait(2)
+    end
+end)
+
+-- Update movement toward the closest player every frame
+RunService.RenderStepped:Connect(function()
+    local closestPlayer = findClosestPlayer()
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetRoot = closestPlayer.Character.HumanoidRootPart
+        local direction = (targetRoot.Position - rootPart.Position).Unit
+        humanoid:Move(direction)
+    end
+end)
+
+-- Function to perform actions based on player count
+local function checkPlayerCount()
+    local playerCount = #Players:GetPlayers()
+
+    if playerCount == 1 then
+        local args = {
+            [1] = "BasicFightSolo"
+        }
+        game:GetService("ReplicatedStorage").Modules.Knit.Services.MatchService.RF.EnterQueue:InvokeServer(unpack(args))
+    elseif playerCount == 2 then
+        -- Sword attack on the closest player
+        task.spawn(function()
+            while #Players:GetPlayers() == 2 do
+                local closestPlayer = findClosestPlayer()
+                if closestPlayer then
+                    local args = {
+                        [1] = closestPlayer.Character,
+                        [2] = false,
+                        [3] = "WoodenSword"
+                    }
+
+                    -- Attack closest player
+                    ReplicatedStorage.Modules.Knit.Services.ToolService.RF.AttackPlayerWithSword:InvokeServer(unpack(args))
+                end
+                wait(0.1)
+            end
+        end)
+
+        -- Teleport on low health
+        task.spawn(function()
+            while #Players:GetPlayers() == 2 do
+                if humanoid.Health <= 10 then
+                    rootPart.CFrame = CFrame.new(targetX, targetY, targetZ)
+                end
+                wait(0.1)
+            end
+        end)
+    elseif playerCount > 3 then
+        local args = {
+            [1] = "BasicFightSolo"
+        }
+        game:GetService("ReplicatedStorage").Modules.Knit.Services.MatchService.RF.EnterQueue:InvokeServer(unpack(args))
+    end
+end
+
+-- Listen for changes in the player count
+Players.PlayerAdded:Connect(checkPlayerCount)
+Players.PlayerRemoving:Connect(checkPlayerCount)
+
+-- Initial check
+checkPlayerCount()
+print("teleported")
+loadstring(game:HttpGet("https://raw.githubusercontent.com/RexyCloudy/Mocar/refs/heads/main/AlphaKSS"))()
+]]
+queue_on_teleport(Code)
+print("Loaded")
